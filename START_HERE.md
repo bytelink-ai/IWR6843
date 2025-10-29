@@ -47,7 +47,7 @@ git push -u origin main
 ```powershell
 cd esphome-iwr6843
 Get-ChildItem -Recurse -Include *.md,*.py,*.yaml | ForEach-Object {
-    (Get-Content $_.FullName) -replace 'yourusername','DEIN_GITHUB_USERNAME' | 
+    (Get-Content $_.FullName) -replace 'bytelink-ai','DEIN_GITHUB_USERNAME' | 
     Set-Content $_.FullName
 }
 git add .
@@ -59,7 +59,7 @@ git push
 ```bash
 cd esphome-iwr6843
 find . -type f \( -name "*.md" -o -name "*.py" -o -name "*.yaml" \) -exec \
-  sed -i 's/yourusername/DEIN_GITHUB_USERNAME/g' {} +
+  sed -i 's/bytelink-ai/DEIN_GITHUB_USERNAME/g' {} +
 git add .
 git commit -m "Update username references"
 git push

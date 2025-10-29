@@ -6,7 +6,7 @@ Thank you for considering contributing to this project!
 
 ### Reporting Bugs
 
-1. Check if the bug is already reported in [Issues](https://github.com/yourusername/esphome-iwr6843/issues)
+1. Check if the bug is already reported in [Issues](https://github.com/bytelink-ai/esphome-iwr6843/issues)
 2. Create a new issue with:
    - Clear title
    - Description of the bug
@@ -51,7 +51,7 @@ Before submitting:
 
 ```bash
 # Clone repo
-git clone https://github.com/yourusername/esphome-iwr6843.git
+git clone https://github.com/bytelink-ai/esphome-iwr6843.git
 cd esphome-iwr6843
 
 # Test with ESPHome
@@ -60,5 +60,5 @@ esphome compile example.yaml
 
 ## Questions?
 
-Feel free to ask in [Discussions](https://github.com/yourusername/esphome-iwr6843/discussions)
+Feel free to ask in [Discussions](https://github.com/bytelink-ai/esphome-iwr6843/discussions)
 

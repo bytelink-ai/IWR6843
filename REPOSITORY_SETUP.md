@@ -52,8 +52,8 @@ Features:
 - GitHub Actions CI/CD
 - Issue/PR templates"
 
-# Remote Repository hinzufügen (ersetze 'yourusername' mit deinem GitHub Username!)
-git remote add origin https://github.com/yourusername/esphome-iwr6843.git
+# Remote Repository hinzufügen (ersetze 'bytelink-ai' mit deinem GitHub Username!)
+git remote add origin https://github.com/bytelink-ai/esphome-iwr6843.git
 
 # Pushen zum GitHub
 git push -u origin main
@@ -118,17 +118,17 @@ Das triggert automatisch:
 
 ### 📚 Schritt 6: README personalisieren
 
-Ersetze in allen Dateien `yourusername` mit deinem GitHub Username:
+Ersetze in allen Dateien `bytelink-ai` mit deinem GitHub Username:
 
 ```bash
 # Auf Linux/Mac:
 find . -type f -name "*.md" -o -name "*.py" -o -name "*.yaml" | \
-  xargs sed -i 's/yourusername/DEIN_USERNAME/g'
+  xargs sed -i 's/bytelink-ai/DEIN_USERNAME/g'
 
 # Auf Windows (PowerShell):
 Get-ChildItem -Recurse -Include *.md,*.py,*.yaml | 
   ForEach-Object {
-    (Get-Content $_.FullName) -replace 'yourusername','DEIN_USERNAME' | 
+    (Get-Content $_.FullName) -replace 'bytelink-ai','DEIN_USERNAME' | 
     Set-Content $_.FullName
   }
 ```
@@ -148,7 +148,7 @@ Für eine schöne Dokumentations-Website:
 2. Source: Deploy from a branch
 3. Branch: `main` / `docs` folder
 4. Save
-5. Deine Docs sind dann verfügbar unter: `https://yourusername.github.io/esphome-iwr6843/`
+5. Deine Docs sind dann verfügbar unter: `https://bytelink-ai.github.io/esphome-iwr6843/`
 
 ### 🤝 Schritt 8: Community Features
 
@@ -183,11 +183,11 @@ Füge in README.md ganz oben hinzu:
 ```markdown
 # ESPHome IWR6843
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/yourusername/esphome-iwr6843)
-![GitHub](https://img.shields.io/github/license/yourusername/esphome-iwr6843)
-![GitHub stars](https://img.shields.io/github/stars/yourusername/esphome-iwr6843?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/esphome-iwr6843)
-![Build Status](https://img.shields.io/github/actions/workflow/status/yourusername/esphome-iwr6843/validate.yml)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/bytelink-ai/esphome-iwr6843)
+![GitHub](https://img.shields.io/github/license/bytelink-ai/esphome-iwr6843)
+![GitHub stars](https://img.shields.io/github/stars/bytelink-ai/esphome-iwr6843?style=social)
+![GitHub issues](https://img.shields.io/github/issues/bytelink-ai/esphome-iwr6843)
+![Build Status](https://img.shields.io/github/actions/workflow/status/bytelink-ai/esphome-iwr6843/validate.yml)
 ```
 
 ### 🔄 Schritt 10: Zukünftige Updates
@@ -241,7 +241,7 @@ Features:
 - Height estimation
 - Home Assistant integration
 
-GitHub: https://github.com/yourusername/esphome-iwr6843
+GitHub: https://github.com/bytelink-ai/esphome-iwr6843
 Documentation: Full setup guide included
 
 Feedback welcome!
@@ -263,7 +263,7 @@ ssh-keygen -t ed25519 -C "your_email@example.com"
 # Public Key zu GitHub → Settings → SSH Keys hinzufügen
 
 # Dann:
-git remote set-url origin git@github.com:yourusername/esphome-iwr6843.git
+git remote set-url origin git@github.com:bytelink-ai/esphome-iwr6843.git
 ```
 
 #### Problem: GitHub Actions schlagen fehl

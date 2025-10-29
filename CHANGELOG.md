@@ -46,6 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines
 - Code of conduct
 
-[Unreleased]: https://github.com/yourusername/esphome-iwr6843/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourusername/esphome-iwr6843/releases/tag/v1.0.0
+[Unreleased]: https://github.com/bytelink-ai/esphome-iwr6843/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/bytelink-ai/esphome-iwr6843/releases/tag/v1.0.0
 

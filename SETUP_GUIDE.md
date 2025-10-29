@@ -36,7 +36,7 @@ GND       →    GND             Common Ground
 #### A. Firmware downloaden:
 ```bash
 # Von GitHub:
-wget https://github.com/yourusername/iwr6843-spi-firmware/releases/download/v1.0/overhead_3d_people_track_demo_default.bin
+wget https://github.com/bytelink-ai/iwr6843-spi-firmware/releases/download/v1.0/overhead_3d_people_track_demo_default.bin
 ```
 
 #### B. UniFlash installieren:
@@ -82,7 +82,7 @@ esphome:
 external_components:
   - source:
       type: git
-      url: https://github.com/yourusername/esphome-iwr6843
+      url: https://github.com/bytelink-ai/esphome-iwr6843
       ref: main
     components: [ iwr6843 ]
 

@@ -8,7 +8,7 @@ from esphome.const import (
     CONF_CS_PIN,
 )
 
-CODEOWNERS = ["@yourusername"]
+CODEOWNERS = ["@bytelink-ai"]
 DEPENDENCIES = ["spi", "uart"]
 AUTO_LOAD = ["sensor", "binary_sensor"]
 

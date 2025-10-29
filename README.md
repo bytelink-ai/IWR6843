@@ -42,7 +42,7 @@ This component requires custom firmware on the IWR6843 that outputs data via SPI
 
 ### Firmware Source
 Get the modified firmware from the companion repository:
-- **Firmware Repository:** [iwr6843-spi-firmware](https://github.com/yourusername/iwr6843-spi-firmware)
+- **Firmware Repository:** [iwr6843-spi-firmware](https://github.com/bytelink-ai/iwr6843-spi-firmware)
 - **Binary File:** `overhead_3d_people_track_demo_default.bin`
 
 ### Flashing Instructions
@@ -72,7 +72,7 @@ Get the modified firmware from the companion repository:
 external_components:
   - source:
       type: git
-      url: https://github.com/yourusername/esphome-iwr6843
+      url: https://github.com/bytelink-ai/esphome-iwr6843
       ref: main
     components: [ iwr6843 ]
 ```
@@ -82,7 +82,7 @@ external_components:
 ```bash
 # Clone to your ESPHome config directory
 cd /config/esphome
-git clone https://github.com/yourusername/esphome-iwr6843.git
+git clone https://github.com/bytelink-ai/esphome-iwr6843.git
 
 # In your YAML:
 external_components:
@@ -351,8 +351,8 @@ MIT License - see LICENSE file
 
 ## Support
 
-- **Issues:** https://github.com/yourusername/esphome-iwr6843/issues
-- **Discussions:** https://github.com/yourusername/esphome-iwr6843/discussions
+- **Issues:** https://github.com/bytelink-ai/esphome-iwr6843/issues
+- **Discussions:** https://github.com/bytelink-ai/esphome-iwr6843/discussions
 - **TI E2E Forum:** https://e2e.ti.com
 
 ## References

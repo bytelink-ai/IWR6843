@@ -1,0 +1,61 @@
+esphome:
+  name: iwr6843-radar
+  platform: ESP32
+  board: esp32dev
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+wifi:
+  ssid: "Your_SSID"
+  password: "Your_Password"
+
+# SPI Configuration
+spi:
+  id: spi_bus
+  clk_pin: GPIO13
+  miso_pin: GPIO12
+  mosi_pin: GPIO14
+
+# UART Configuration (for radar config commands)
+uart:
+  id: uart_radar
+  tx_pin: GPIO27
+  rx_pin: GPIO26
+  baud_rate: 115200
+
+# IWR6843 Radar Component
+iwr6843:
+  id: my_radar
+  spi_id: spi_bus
+  uart_id: uart_radar
+  cs_pin: GPIO25
+  sop2_pin: GPIO33  # Boot mode select
+  nrst_pin: GPIO32  # Reset pin
+  ceiling_height: 290  # cm
+  max_tracks: 5
+  update_interval: 50ms
+
+# Binary Sensor - Presence Detection
+binary_sensor:
+  - platform: iwr6843
+    iwr6843_id: my_radar
+    presence:
+      name: "Radar Presence"
+      device_class: presence
+
+# Sensors
+sensor:
+  - platform: iwr6843
+    iwr6843_id: my_radar
+    num_targets:
+      name: "Number of Targets"
+    frame_number:
+      name: "Frame Number"
+

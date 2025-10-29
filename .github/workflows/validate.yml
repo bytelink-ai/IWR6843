@@ -1,0 +1,68 @@
+name: Validate ESPHome Component
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        esphome-version: ['2023.12.0', '2024.2.0', 'latest']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install ESPHome
+        run: |
+          pip install esphome==${{ matrix.esphome-version }}
+      
+      - name: Validate Example Config
+        run: |
+          esphome config example.yaml
+      
+      - name: Compile Example
+        run: |
+          esphome compile example.yaml
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install pylint black flake8
+      
+      - name: Lint Python files
+        run: |
+          find components -name "*.py" -exec pylint {} \;
+      
+      - name: Check formatting
+        run: |
+          black --check components/
+
+  cpp-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run clang-format
+        uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: '14'
+          check-path: 'components/iwr6843'
+

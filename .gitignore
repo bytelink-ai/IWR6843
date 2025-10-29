@@ -1,0 +1,20 @@
+# ESPHome
+.esphome/
+*.pyc
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+.pioenvs/
+.piolibdeps/
+.pio/
+
+# Secrets
+secrets.yaml
+

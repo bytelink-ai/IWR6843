@@ -7,9 +7,11 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_EMPTY,
     UNIT_METER,
-    UNIT_METER_PER_SECOND,
 )
 from . import IWR6843Component, CONF_ID as IWR6843_ID
+
+# Custom unit for velocity (not available in esphome.const)
+UNIT_METER_PER_SECOND = "m/s"
 
 DEPENDENCIES = ["iwr6843"]
 

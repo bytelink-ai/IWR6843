@@ -56,28 +56,29 @@ static const char *CONFIG_COMMANDS[] = {
 void IWR6843Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up IWR6843...");
   
-  // Configure pins (CS pin is handled by SPIDevice)
-  this->sop2_pin_->setup();
-  this->sop2_pin_->digital_write(true);  // SOP2 high for functional mode
-  
-  this->nrst_pin_->setup();
-  this->nrst_pin_->digital_write(true);  // Not in reset
-  
-  // Initialize SPI
-  this->spi_setup();
-  
-  // Reset radar
-  if (!this->reset_radar_()) {
-    ESP_LOGE(TAG, "Failed to reset radar");
-    this->mark_failed();
-    return;
+  // Configure pins if provided
+  if (this->sop2_pin_ != nullptr) {
+    this->sop2_pin_->setup();
+    this->sop2_pin_->digital_write(true);  // SOP2 high for functional mode
   }
   
-  // Wait for boot with watchdog feeding
-  ESP_LOGI(TAG, "Waiting for radar boot...");
-  for (int i = 0; i < 10; i++) {
-    App.feed_wdt();
-    delay(100);
+  if (this->nrst_pin_ != nullptr) {
+    this->nrst_pin_->setup();
+    this->nrst_pin_->digital_write(true);  // Not in reset
+    
+    // Reset radar
+    if (!this->reset_radar_()) {
+      ESP_LOGE(TAG, "Failed to reset radar");
+      this->mark_failed();
+      return;
+    }
+    
+    // Wait for boot with watchdog feeding
+    ESP_LOGI(TAG, "Waiting for radar boot...");
+    for (int i = 0; i < 10; i++) {
+      App.feed_wdt();
+      delay(100);
+    }
   }
   
   // Configure radar
@@ -90,7 +91,7 @@ void IWR6843Component::setup() {
   
   this->configured_ = true;
   ESP_LOGI(TAG, "IWR6843 setup complete");
-  ESP_LOGI(TAG, "Starting SPI data polling (interval: %d ms)...", this->update_interval_);
+  ESP_LOGI(TAG, "Starting UART data polling (interval: %d ms, baud: 921600)...", this->update_interval_);
 }
 
 void IWR6843Component::loop() {
@@ -98,19 +99,7 @@ void IWR6843Component::loop() {
     return;
   }
   
-  static uint32_t loop_count = 0;
-  if (loop_count++ % 200 == 0) {  // Log every 200 loops (~10 seconds)
-    ESP_LOGI(TAG, "Loop running... (count: %d, configured: %d)", loop_count, this->configured_);
-  }
-  
-  uint32_t now = millis();
-  if (now - this->last_read_time_ < this->update_interval_) {
-    return;
-  }
-  
-  this->last_read_time_ = now;
-  
-  // Read frame from SPI
+  // Try to read frame from data UART
   if (this->read_frame_()) {
     // Process successful frame read
     ESP_LOGD(TAG, "Frame %d: %d targets, presence: %d", 
@@ -131,11 +120,17 @@ void IWR6843Component::loop() {
 
 void IWR6843Component::dump_config() {
   ESP_LOGCONFIG(TAG, "IWR6843:");
-  LOG_PIN("  SOP2 Pin: ", this->sop2_pin_);
-  LOG_PIN("  NRST Pin: ", this->nrst_pin_);
+  if (this->sop2_pin_ != nullptr) {
+    LOG_PIN("  SOP2 Pin: ", this->sop2_pin_);
+  }
+  if (this->nrst_pin_ != nullptr) {
+    LOG_PIN("  NRST Pin: ", this->nrst_pin_);
+  }
   ESP_LOGCONFIG(TAG, "  Ceiling Height: %d cm", this->ceiling_height_);
   ESP_LOGCONFIG(TAG, "  Max Tracks: %d", this->max_tracks_);
   ESP_LOGCONFIG(TAG, "  Update Interval: %d ms", this->update_interval_);
+  ESP_LOGCONFIG(TAG, "  Config UART: 115200 baud");
+  ESP_LOGCONFIG(TAG, "  Data UART: 921600 baud");
   
   if (this->is_failed()) {
     ESP_LOGE(TAG, "Configuration FAILED!");
@@ -143,10 +138,17 @@ void IWR6843Component::dump_config() {
 }
 
 bool IWR6843Component::reset_radar_() {
+  if (this->nrst_pin_ == nullptr) {
+    ESP_LOGW(TAG, "No NRST pin configured, skipping reset");
+    return true;
+  }
+  
   ESP_LOGI(TAG, "Resetting radar...");
   
   // SOP2 high = functional mode (not flashing mode)
-  this->sop2_pin_->digital_write(true);
+  if (this->sop2_pin_ != nullptr) {
+    this->sop2_pin_->digital_write(true);
+  }
   
   // Reset sequence
   this->nrst_pin_->digital_write(false);
@@ -180,10 +182,10 @@ bool IWR6843Component::configure_radar_() {
 bool IWR6843Component::send_config_line_(const char *line) {
   ESP_LOGD(TAG, "TX: %s", line);
   
-  // Send line via UART
-  this->uart_->write_str(line);
-  this->uart_->write_byte('\n');
-  this->uart_->flush();
+  // Send line via config UART
+  this->config_uart_->write_str(line);
+  this->config_uart_->write_byte('\n');
+  this->config_uart_->flush();
   
   // Wait for response with watchdog feeding
   uint32_t timeout = millis() + 300;
@@ -193,9 +195,9 @@ bool IWR6843Component::send_config_line_(const char *line) {
     // Feed watchdog every iteration
     App.feed_wdt();
     
-    if (this->uart_->available()) {
+    if (this->config_uart_->available()) {
       uint8_t c;
-      this->uart_->read_byte(&c);
+      this->config_uart_->read_byte(&c);
       if (c == '\n') {
         if (response.length() > 0) {
           ESP_LOGV(TAG, "RX: %s", response.c_str());
@@ -216,144 +218,136 @@ bool IWR6843Component::send_config_line_(const char *line) {
 }
 
 bool IWR6843Component::read_frame_() {
-  // Read header (enable/disable handle CS pin automatically)
-  this->enable();
-  this->read_array(this->buffer_, sizeof(IWR6843Header));
-  this->disable();
-  
-  IWR6843Header *header = reinterpret_cast<IWR6843Header*>(this->buffer_);
-  
-  // Debug: Log first few bytes
-  static uint32_t debug_count = 0;
-  if (debug_count++ % 100 == 0) {  // Log every 100th attempt
-    ESP_LOGD(TAG, "SPI Header bytes: %02X %02X %02X %02X %02X %02X %02X %02X",
-             this->buffer_[0], this->buffer_[1], this->buffer_[2], this->buffer_[3],
-             this->buffer_[4], this->buffer_[5], this->buffer_[6], this->buffer_[7]);
-  }
-  
-  // Validate header
-  if (!this->validate_header_(*header)) {
-    return false;
-  }
-  
-  // Read rest of packet
-  uint32_t remaining = header->total_packet_len - sizeof(IWR6843Header);
-  if (remaining > BUFFER_SIZE - sizeof(IWR6843Header)) {
-    ESP_LOGE(TAG, "Packet too large: %d bytes", header->total_packet_len);
-    return false;
-  }
-  
-  this->enable();
-  this->read_array(this->buffer_ + sizeof(IWR6843Header), remaining);
-  this->disable();
-  
-  // Update frame number
-  this->frame_number_ = header->frame_number;
-  
-  // Parse TLVs
-  uint8_t *tlv_data = this->buffer_ + sizeof(IWR6843Header);
-  uint32_t offset = 0;
-  
-  for (uint16_t i = 0; i < header->num_tlvs && offset < remaining; i++) {
-    TLVHeader *tlv = reinterpret_cast<TLVHeader*>(tlv_data + offset);
+  // Look for magic word in incoming data
+  while (this->data_uart_->available()) {
+    uint8_t byte;
+    this->data_uart_->read_byte(&byte);
     
-    this->parse_tlv_(tlv_data + offset + sizeof(TLVHeader), tlv->length);
+    this->buffer_[this->buffer_index_++] = byte;
     
-    offset += sizeof(TLVHeader) + tlv->length;
-  }
-  
-  return true;
-}
-
-bool IWR6843Component::validate_header_(const IWR6843Header &header) {
-  // Check magic word
-  if (header.magic_word[0] != 0x0102 || 
-      header.magic_word[1] != 0x0304 ||
-      header.magic_word[2] != 0x0506 || 
-      header.magic_word[3] != 0x0708) {
-    static uint32_t error_count = 0;
-    if (error_count++ % 100 == 0) {  // Log every 100th error
-      ESP_LOGW(TAG, "Invalid magic word: %04X %04X %04X %04X (expected: 0102 0304 0506 0708)",
-               header.magic_word[0], header.magic_word[1], 
-               header.magic_word[2], header.magic_word[3]);
+    // Check if we have enough bytes for header
+    if (this->buffer_index_ >= sizeof(IWR6843Header)) {
+      // Check for magic word at current position
+      IWR6843Header *header = reinterpret_cast<IWR6843Header*>(this->buffer_);
+      
+      if (header->magic_word[0] == 0x0102 && 
+          header->magic_word[1] == 0x0304 &&
+          header->magic_word[2] == 0x0506 && 
+          header->magic_word[3] == 0x0708) {
+        
+        // Valid magic word found!
+        uint32_t packet_len = header->total_packet_len;
+        
+        if (packet_len > BUFFER_SIZE) {
+          ESP_LOGW(TAG, "Packet too large: %d bytes", packet_len);
+          this->buffer_index_ = 0;
+          return false;
+        }
+        
+        // Read rest of packet
+        while (this->buffer_index_ < packet_len && this->data_uart_->available()) {
+          this->data_uart_->read_byte(&this->buffer_[this->buffer_index_++]);
+        }
+        
+        // Check if we have complete packet
+        if (this->buffer_index_ >= packet_len) {
+          // Process complete frame
+          this->frame_number_ = header->frame_number;
+          
+          // Parse TLVs
+          uint8_t *tlv_data = this->buffer_ + sizeof(IWR6843Header);
+          uint32_t offset = 0;
+          uint32_t remaining = packet_len - sizeof(IWR6843Header);
+          
+          for (uint16_t i = 0; i < header->num_tlvs && offset < remaining; i++) {
+            if (offset + sizeof(TLVHeader) > remaining) break;
+            
+            TLVHeader *tlv = reinterpret_cast<TLVHeader*>(tlv_data + offset);
+            
+            if (offset + sizeof(TLVHeader) + tlv->length > remaining) break;
+            
+            this->parse_tlv_(tlv_data + offset + sizeof(TLVHeader), tlv->length);
+            
+            offset += sizeof(TLVHeader) + tlv->length;
+          }
+          
+          // Reset buffer for next frame
+          this->buffer_index_ = 0;
+          return true;
+        }
+      } else {
+        // Not a valid magic word, shift buffer
+        if (this->buffer_index_ >= sizeof(IWR6843Header)) {
+          memmove(this->buffer_, this->buffer_ + 1, this->buffer_index_ - 1);
+          this->buffer_index_--;
+        }
+      }
     }
-    return false;
+    
+    // Prevent buffer overflow
+    if (this->buffer_index_ >= BUFFER_SIZE) {
+      ESP_LOGW(TAG, "Buffer overflow, resetting");
+      this->buffer_index_ = 0;
+    }
   }
   
-  // Check platform
-  if (header.platform != 0xA6843) {
-    ESP_LOGW(TAG, "Unexpected platform: 0x%X", header.platform);
-  }
-  
-  ESP_LOGD(TAG, "Valid header found! Frame: %d, TLVs: %d", 
-           header.frame_number, header.num_tlvs);
-  
-  return true;
+  return false;
 }
 
 void IWR6843Component::parse_tlv_(const uint8_t *data, uint32_t length) {
   const TLVHeader *tlv = reinterpret_cast<const TLVHeader*>(data - sizeof(TLVHeader));
   
   switch (tlv->type) {
-    case MMWDEMO_OUTPUT_MSG_POINT_CLOUD:
-      this->parse_point_cloud_(data, length);
-      break;
-      
     case MMWDEMO_OUTPUT_MSG_TRACKERPROC_3D_TARGET_LIST:
       this->parse_target_list_(data, length);
       break;
-      
+    
     case MMWDEMO_OUTPUT_MSG_TRACKERPROC_TARGET_HEIGHT:
       this->parse_target_height_(data, length);
       break;
-      
+    
     case MMWDEMO_OUTPUT_MSG_PRESCENCE_INDICATION:
       this->parse_presence_(data, length);
       break;
-      
+    
+    case MMWDEMO_OUTPUT_MSG_POINT_CLOUD:
+      // Point cloud data - can be parsed if needed
+      break;
+    
     default:
       ESP_LOGV(TAG, "Unknown TLV type: %d", tlv->type);
       break;
   }
 }
 
-void IWR6843Component::parse_point_cloud_(const uint8_t *data, uint32_t length) {
-  // Point cloud parsing (if needed)
-  ESP_LOGV(TAG, "Point cloud: %d bytes", length);
-}
-
 void IWR6843Component::parse_target_list_(const uint8_t *data, uint32_t length) {
-  uint8_t num_targets = length / sizeof(Target);
-  
-  if (num_targets > this->max_tracks_) {
-    num_targets = this->max_tracks_;
+  if (length < sizeof(uint32_t)) {
+    return;
   }
   
+  uint32_t num_targets = *reinterpret_cast<const uint32_t*>(data);
   this->num_targets_ = num_targets;
+  
   this->targets_.clear();
   
-  const Target *targets = reinterpret_cast<const Target*>(data);
+  const Target *targets = reinterpret_cast<const Target*>(data + sizeof(uint32_t));
+  uint32_t available_targets = (length - sizeof(uint32_t)) / sizeof(Target);
   
-  for (uint8_t i = 0; i < num_targets; i++) {
+  for (uint32_t i = 0; i < num_targets && i < available_targets && i < this->max_tracks_; i++) {
     this->targets_.push_back(targets[i]);
-    
-    ESP_LOGD(TAG, "Target %d (TID %d): pos(%.2f, %.2f, %.2f) vel(%.2f, %.2f, %.2f)",
-             i, targets[i].tid,
-             targets[i].pos_x, targets[i].pos_y, targets[i].pos_z,
+    ESP_LOGV(TAG, "Target %d: pos=(%.2f, %.2f, %.2f), vel=(%.2f, %.2f, %.2f)",
+             targets[i].tid, targets[i].pos_x, targets[i].pos_y, targets[i].pos_z,
              targets[i].vel_x, targets[i].vel_y, targets[i].vel_z);
-    
-    // Trigger callback
-    this->target_callbacks_.call(targets[i]);
   }
 }
 
 void IWR6843Component::parse_target_height_(const uint8_t *data, uint32_t length) {
-  uint8_t num_heights = length / sizeof(TargetHeight);
-  
   this->target_heights_.clear();
-  const TargetHeight *heights = reinterpret_cast<const TargetHeight*>(data);
   
-  for (uint8_t i = 0; i < num_heights; i++) {
+  const TargetHeight *heights = reinterpret_cast<const TargetHeight*>(data);
+  uint32_t num_heights = length / sizeof(TargetHeight);
+  
+  for (uint32_t i = 0; i < num_heights; i++) {
     this->target_heights_.push_back(heights[i]);
     ESP_LOGV(TAG, "Target %d height: %.2f cm", heights[i].tid, heights[i].height);
   }
@@ -425,11 +419,11 @@ void IWR6843Component::update_track_sensors_() {
         }
       }
     } else {
-      // Track not present - publish NaN or 0
+      // Track not present - publish NaN
       for (auto &sensor_entry : sensors) {
         sensor::Sensor *sens = sensor_entry.second;
         if (sens != nullptr) {
-          sens->publish_state(NAN);  // Not available
+          sens->publish_state(NAN);
         }
       }
     }
@@ -438,4 +432,3 @@ void IWR6843Component::update_track_sensors_() {
 
 }  // namespace iwr6843
 }  // namespace esphome
-

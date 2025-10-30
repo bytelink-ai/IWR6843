@@ -16,29 +16,28 @@ wifi:
   ssid: "Your_SSID"
   password: "Your_Password"
 
-# SPI Configuration
-spi:
-  id: spi_bus
-  clk_pin: GPIO13
-  miso_pin: GPIO12
-  mosi_pin: GPIO14
-
-# UART Configuration (for radar config commands)
+# UART Configuration
+# Config UART: CLI Port for sending configuration commands @ 115200 baud
 uart:
-  id: uart_radar
-  tx_pin: GPIO27
-  rx_pin: GPIO26
-  baud_rate: 115200
+  - id: uart_config
+    tx_pin: GPIO27
+    rx_pin: GPIO26
+    baud_rate: 115200
+  
+  # Data UART: Data Port for receiving radar data @ 921600 baud
+  - id: uart_data
+    tx_pin: GPIO16  # Not used, but required
+    rx_pin: GPIO17  # UART2 RX for data
+    baud_rate: 921600
 
 # IWR6843 Radar Component
 iwr6843:
   id: my_radar
-  spi_id: spi_bus
-  uart_id: uart_radar
-  cs_pin: GPIO25
-  sop2_pin: GPIO33  # Boot mode select
-  nrst_pin: GPIO32  # Reset pin
-  ceiling_height: 290  # cm
+  config_uart_id: uart_config  # CLI Port @ 115200
+  data_uart_id: uart_data      # Data Port @ 921600
+  sop2_pin: GPIO33             # Optional: Boot mode select
+  nrst_pin: GPIO32             # Optional: Reset pin
+  ceiling_height: 290          # cm
   max_tracks: 5
   update_interval: 50ms
 
@@ -58,4 +57,3 @@ sensor:
       name: "Number of Targets"
     frame_number:
       name: "Frame Number"
-

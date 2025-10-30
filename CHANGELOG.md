@@ -7,10 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial release of ESPHome IWR6843 component
+## [1.1.0] - 2025-10-30
 
-## [1.0.0] - 2025-01-XX
+### Added
+- Detailed person tracking sensors for individual targets
+- Position sensors (X, Y, Z) for each tracked person (in cm)
+- Velocity sensors (VX, VY, VZ) for each tracked person (in m/s)
+- Distance sensor for each tracked person calculated from 3D position
+- Support for up to 20 simultaneous tracks with individual sensors
+- New `example_detailed.yaml` with comprehensive sensor configuration
+- Automatic calculation of 3D distance from position data
+- Track-specific sensor publishing with NaN for absent tracks
+
+### Changed
+- Enhanced `sensor.py` to support track-specific sensor configuration
+- Updated C++ implementation (`iwr6843.cpp`) to publish track data to individual sensors
+- Improved sensor organization with track_id based grouping
+- Added `<map>` include for C++ STL map support
+
+### Technical Details
+- Track sensor mapping: 0=X, 1=Y, 2=Z, 3=VX, 4=VY, 5=VZ, 6=Distance
+- Each track can have any combination of the 7 sensor types
+- Sensors publish NaN when track is not detected
+- Frame-by-frame updates for all configured track sensors
+
+## [1.0.0] - 2025-10-30
 
 ### Added
 - SPI data interface support for IWR6843
@@ -46,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines
 - Code of conduct
 
-[Unreleased]: https://github.com/bytelink-ai/esphome-iwr6843/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/bytelink-ai/esphome-iwr6843/releases/tag/v1.0.0
+[Unreleased]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/bytelink-ai/IWR6843/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/bytelink-ai/IWR6843/releases/tag/v1.0.0
 

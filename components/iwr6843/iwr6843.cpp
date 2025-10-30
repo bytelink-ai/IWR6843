@@ -102,6 +102,17 @@ void IWR6843Component::loop() {
     // Process successful frame read
     ESP_LOGV(TAG, "Frame %d: %d targets, presence: %d", 
              this->frame_number_, this->num_targets_, this->presence_detected_);
+    
+    // Update sensors
+    if (this->num_targets_sensor_ != nullptr) {
+      this->num_targets_sensor_->publish_state(this->num_targets_);
+    }
+    if (this->frame_number_sensor_ != nullptr) {
+      this->frame_number_sensor_->publish_state(this->frame_number_);
+    }
+    
+    // Update track sensors
+    this->update_track_sensors_();
   }
 }
 
@@ -333,6 +344,68 @@ void IWR6843Component::parse_presence_(const uint8_t *data, uint32_t length) {
       
       // Trigger callback
       this->presence_callbacks_.call(detected);
+    }
+  }
+}
+
+void IWR6843Component::set_track_sensor(uint8_t track_id, uint8_t sensor_type, sensor::Sensor *sensor) {
+  this->track_sensors_[track_id][sensor_type] = sensor;
+}
+
+void IWR6843Component::update_track_sensors_() {
+  // Update all registered track sensors
+  for (auto &track_entry : this->track_sensors_) {
+    uint8_t track_id = track_entry.first;
+    auto &sensors = track_entry.second;
+    
+    // Get track data
+    if (track_id < this->targets_.size()) {
+      const Target &target = this->targets_[track_id];
+      
+      // Calculate distance
+      float distance = sqrt(target.pos_x * target.pos_x + 
+                           target.pos_y * target.pos_y + 
+                           target.pos_z * target.pos_z);
+      
+      // Update each sensor type
+      for (auto &sensor_entry : sensors) {
+        uint8_t sensor_type = sensor_entry.first;
+        sensor::Sensor *sens = sensor_entry.second;
+        
+        if (sens != nullptr) {
+          switch (sensor_type) {
+            case 0:  // X position
+              sens->publish_state(target.pos_x);
+              break;
+            case 1:  // Y position
+              sens->publish_state(target.pos_y);
+              break;
+            case 2:  // Z position
+              sens->publish_state(target.pos_z);
+              break;
+            case 3:  // X velocity
+              sens->publish_state(target.vel_x);
+              break;
+            case 4:  // Y velocity
+              sens->publish_state(target.vel_y);
+              break;
+            case 5:  // Z velocity
+              sens->publish_state(target.vel_z);
+              break;
+            case 6:  // Distance
+              sens->publish_state(distance);
+              break;
+          }
+        }
+      }
+    } else {
+      // Track not present - publish NaN or 0
+      for (auto &sensor_entry : sensors) {
+        sensor::Sensor *sens = sensor_entry.second;
+        if (sens != nullptr) {
+          sens->publish_state(NAN);  // Not available
+        }
+      }
     }
   }
 }

@@ -1,0 +1,149 @@
+esphome:
+  name: iwr6843-radar-detailed
+  platform: ESP32
+  board: esp32dev
+
+# Enable logging
+logger:
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+wifi:
+  ssid: "Your_SSID"
+  password: "Your_Password"
+
+# SPI Configuration
+spi:
+  id: spi_bus
+  clk_pin: GPIO13
+  miso_pin: GPIO12
+  mosi_pin: GPIO14
+
+# UART Configuration (for radar config commands)
+uart:
+  id: uart_radar
+  tx_pin: GPIO27
+  rx_pin: GPIO26
+  baud_rate: 115200
+
+# IWR6843 Radar Component
+iwr6843:
+  id: my_radar
+  spi_id: spi_bus
+  uart_id: uart_radar
+  cs_pin: GPIO25
+  sop2_pin: GPIO33  # Boot mode select
+  nrst_pin: GPIO32  # Reset pin
+  ceiling_height: 290  # cm
+  max_tracks: 5
+  update_interval: 50ms
+
+# Binary Sensor - Presence Detection
+binary_sensor:
+  - platform: iwr6843
+    iwr6843_id: my_radar
+    presence:
+      name: "Radar Presence"
+      device_class: presence
+
+# Basic Sensors
+sensor:
+  - platform: iwr6843
+    iwr6843_id: my_radar
+    num_targets:
+      name: "Number of People"
+    frame_number:
+      name: "Frame Number"
+    
+    # Detailed tracking for up to 5 people
+    tracks:
+      # Person 1
+      - track_id: 0
+        position_x:
+          name: "Person 1 Position X"
+          icon: "mdi:axis-x-arrow"
+        position_y:
+          name: "Person 1 Position Y"
+          icon: "mdi:axis-y-arrow"
+        position_z:
+          name: "Person 1 Position Z"
+          icon: "mdi:axis-z-arrow"
+        velocity_x:
+          name: "Person 1 Velocity X"
+          icon: "mdi:speedometer"
+        velocity_y:
+          name: "Person 1 Velocity Y"
+          icon: "mdi:speedometer"
+        velocity_z:
+          name: "Person 1 Velocity Z"
+          icon: "mdi:speedometer"
+        distance:
+          name: "Person 1 Distance"
+          icon: "mdi:map-marker-distance"
+      
+      # Person 2
+      - track_id: 1
+        position_x:
+          name: "Person 2 Position X"
+        position_y:
+          name: "Person 2 Position Y"
+        position_z:
+          name: "Person 2 Position Z"
+        velocity_x:
+          name: "Person 2 Velocity X"
+        velocity_y:
+          name: "Person 2 Velocity Y"
+        velocity_z:
+          name: "Person 2 Velocity Z"
+        distance:
+          name: "Person 2 Distance"
+      
+      # Person 3
+      - track_id: 2
+        position_x:
+          name: "Person 3 Position X"
+        position_y:
+          name: "Person 3 Position Y"
+        position_z:
+          name: "Person 3 Position Z"
+        distance:
+          name: "Person 3 Distance"
+      
+      # Person 4
+      - track_id: 3
+        position_x:
+          name: "Person 4 Position X"
+        position_y:
+          name: "Person 4 Position Y"
+        position_z:
+          name: "Person 4 Position Z"
+        distance:
+          name: "Person 4 Distance"
+      
+      # Person 5
+      - track_id: 4
+        position_x:
+          name: "Person 5 Position X"
+        position_y:
+          name: "Person 5 Position Y"
+        position_z:
+          name: "Person 5 Position Z"
+        distance:
+          name: "Person 5 Distance"
+
+# Home Assistant Automations Beispiele (lovelace card)
+# - platform: template
+#   sensors:
+#     person_1_state:
+#       friendly_name: "Person 1 Status"
+#       value_template: >-
+#         {% if states('sensor.person_1_distance') | float(0) > 0 %}
+#           Present at {{ states('sensor.person_1_distance') | round(2) }}m
+#         {% else %}
+#           Not Detected
+#         {% endif %}
+

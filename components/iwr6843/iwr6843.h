@@ -4,7 +4,9 @@
 #include "esphome/core/hal.h"
 #include "esphome/components/spi/spi.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/sensor/sensor.h"
 #include <vector>
+#include <map>
 
 namespace esphome {
 namespace iwr6843 {
@@ -85,6 +87,15 @@ class IWR6843Component : public Component,
   uint8_t get_num_targets() const { return this->num_targets_; }
   const std::vector<Target>& get_targets() const { return this->targets_; }
   uint32_t get_frame_number() const { return this->frame_number_; }
+  
+  // Get specific track data
+  bool get_track_data(uint8_t track_id, Target &target) const {
+    if (track_id < this->targets_.size()) {
+      target = this->targets_[track_id];
+      return true;
+    }
+    return false;
+  }
 
   // Callbacks
   void add_on_presence_callback(std::function<void(bool)> &&callback) {
@@ -93,6 +104,11 @@ class IWR6843Component : public Component,
   void add_on_target_callback(std::function<void(const Target&)> &&callback) {
     this->target_callbacks_.add(std::move(callback));
   }
+  
+  // Set track sensor references
+  void set_num_targets_sensor(sensor::Sensor *sensor) { this->num_targets_sensor_ = sensor; }
+  void set_frame_number_sensor(sensor::Sensor *sensor) { this->frame_number_sensor_ = sensor; }
+  void set_track_sensor(uint8_t track_id, uint8_t sensor_type, sensor::Sensor *sensor);
 
  protected:
   // Hardware control
@@ -136,6 +152,16 @@ class IWR6843Component : public Component,
   // Callbacks
   CallbackManager<void(bool)> presence_callbacks_;
   CallbackManager<void(const Target&)> target_callbacks_;
+  
+  // Sensor references
+  sensor::Sensor *num_targets_sensor_{nullptr};
+  sensor::Sensor *frame_number_sensor_{nullptr};
+  
+  // Track sensors [track_id][sensor_type] -> sensor
+  // sensor_type: 0=X, 1=Y, 2=Z, 3=VX, 4=VY, 5=VZ, 6=Distance
+  std::map<uint8_t, std::map<uint8_t, sensor::Sensor*>> track_sensors_;
+  
+  void update_track_sensors_();
 };
 
 }  // namespace iwr6843

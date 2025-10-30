@@ -1,0 +1,105 @@
+esphome:
+  name: iwr6843-single-uart
+  platform: ESP32
+  board: esp32dev
+
+# Enable logging
+logger:
+  level: DEBUG
+  baud_rate: 0  # Disable hardware UART logging (wichtig!)
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+wifi:
+  ssid: "Your_SSID"
+  password: "Your_Password"
+  
+  # Fallback hotspot
+  ap:
+    ssid: "IWR6843 Fallback"
+    password: "12345678"
+
+# Webserver für Status
+web_server:
+  port: 80
+
+# External Component von GitHub
+external_components:
+  - source:
+      type: git
+      url: https://github.com/bytelink-ai/IWR6843
+      ref: main
+    components: [ iwr6843 ]
+
+# =============================================================================
+# SINGLE UART SETUP - CLI + DATA auf UART0 @ 115200 (wie Standard-Firmware)
+# =============================================================================
+# WICHTIG: Die Standard-Firmware sendet CLI UND Daten auf UART0 @ 115200!
+# Keine separaten UARTs nötig!
+# =============================================================================
+
+uart:
+  # UART für CONFIG (TX/RX) UND DATA (nur RX) - beides @ 115200!
+  - id: uart_radar
+    tx_pin: GPIO27  # TX für Config-Commands
+    rx_pin: GPIO26  # RX für Config-Responses UND Data-Frames!
+    baud_rate: 115200
+    rx_buffer_size: 2048  # Größerer Buffer für Data-Frames
+
+# IWR6843 Radar Component (Single UART Mode)
+iwr6843:
+  id: my_radar
+  config_uart_id: uart_radar  # CLI Port @ 115200
+  data_uart_id: uart_radar    # DATA Port @ 115200 (SAME UART!)
+  sop2_pin: GPIO33            # Optional: Boot mode select
+  nrst_pin: GPIO32            # Optional: Reset pin
+  ceiling_height: 290         # cm
+  max_tracks: 5
+  update_interval: 50ms
+
+# Binary Sensor - Presence Detection
+binary_sensor:
+  - platform: iwr6843
+    iwr6843_id: my_radar
+    presence:
+      name: "Radar Presence"
+      device_class: presence
+
+# Basic Sensors
+sensor:
+  - platform: iwr6843
+    iwr6843_id: my_radar
+    num_targets:
+      name: "Number of Targets"
+    frame_number:
+      name: "Frame Number"
+    
+  # WiFi Signal
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+
+# =============================================================================
+# HARDWARE CONNECTIONS (Single UART)
+# =============================================================================
+# IWR6843          ESP32
+# --------------------------------
+# PINN5 (TX)    →  GPIO26 (RX)  - Config Response + Data @ 115200
+# PINN4 (RX)    ←  GPIO27 (TX)  - Config Commands @ 115200
+# GPIO33        ←  SOP2 Pin (optional)
+# GPIO32        ←  NRST Pin (optional)
+# GND           -  GND
+# 5V            -  5V (oder separate Power)
+# =============================================================================
+
+# Text Sensors für Debug
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+    ssid:
+      name: "Connected SSID"
+

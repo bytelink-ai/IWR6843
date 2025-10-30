@@ -5,7 +5,6 @@ from esphome import pins
 from esphome.components import spi, uart
 from esphome.const import (
     CONF_ID,
-    CONF_CS_PIN,
 )
 
 CODEOWNERS = ["@bytelink-ai"]
@@ -30,14 +29,13 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.declare_id(IWR6843Component),
         cv.Required(CONF_SPI_ID): cv.use_id(spi.SPIComponent),
         cv.Required(CONF_UART_ID): cv.use_id(uart.UARTComponent),
-        cv.Required(CONF_CS_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_SOP2_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_NRST_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_CEILING_HEIGHT, default=250): cv.int_range(min=100, max=500),
         cv.Optional(CONF_MAX_TRACKS, default=5): cv.int_range(min=1, max=20),
         cv.Optional(CONF_UPDATE_INTERVAL, default="50ms"): cv.positive_time_period_milliseconds,
     }
-).extend(cv.COMPONENT_SCHEMA).extend(spi.spi_device_schema(cs_pin_required=False))
+).extend(cv.COMPONENT_SCHEMA).extend(spi.spi_device_schema(cs_pin_required=True))
 
 
 async def to_code(config):
@@ -48,10 +46,6 @@ async def to_code(config):
     # UART
     uart_component = await cg.get_variable(config[CONF_UART_ID])
     cg.add(var.set_uart(uart_component))
-    
-    # CS Pin
-    cs_pin = await cg.gpio_pin_expression(config[CONF_CS_PIN])
-    cg.add(var.set_cs_pin(cs_pin))
     
     # SOP2 Pin (Boot mode)
     sop2_pin = await cg.gpio_pin_expression(config[CONF_SOP2_PIN])

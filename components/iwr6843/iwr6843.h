@@ -75,7 +75,6 @@ class IWR6843Component : public Component,
 
   // Configuration setters
   void set_uart(uart::UARTComponent *uart) { this->uart_ = uart; }
-  void set_cs_pin(GPIOPin *pin) { this->cs_pin_ = pin; }
   void set_sop2_pin(GPIOPin *pin) { this->sop2_pin_ = pin; }
   void set_nrst_pin(GPIOPin *pin) { this->nrst_pin_ = pin; }
   void set_ceiling_height(uint16_t height) { this->ceiling_height_ = height; }
@@ -127,7 +126,6 @@ class IWR6843Component : public Component,
 
   // Configuration
   uart::UARTComponent *uart_{nullptr};
-  GPIOPin *cs_pin_{nullptr};
   GPIOPin *sop2_pin_{nullptr};
   GPIOPin *nrst_pin_{nullptr};
   

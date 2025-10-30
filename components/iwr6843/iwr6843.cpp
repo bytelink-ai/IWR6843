@@ -55,15 +55,15 @@ static const char *CONFIG_COMMANDS[] = {
 void IWR6843Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up IWR6843...");
   
-  // Configure pins
-  this->cs_pin_->setup();
-  this->cs_pin_->digital_write(true);  // CS high (inactive)
-  
+  // Configure pins (CS pin is handled by SPIDevice)
   this->sop2_pin_->setup();
   this->sop2_pin_->digital_write(true);  // SOP2 high for functional mode
   
   this->nrst_pin_->setup();
   this->nrst_pin_->digital_write(true);  // Not in reset
+  
+  // Initialize SPI
+  this->spi_setup();
   
   // Reset radar
   if (!this->reset_radar_()) {
@@ -118,7 +118,6 @@ void IWR6843Component::loop() {
 
 void IWR6843Component::dump_config() {
   ESP_LOGCONFIG(TAG, "IWR6843:");
-  LOG_PIN("  CS Pin: ", this->cs_pin_);
   LOG_PIN("  SOP2 Pin: ", this->sop2_pin_);
   LOG_PIN("  NRST Pin: ", this->nrst_pin_);
   ESP_LOGCONFIG(TAG, "  Ceiling Height: %d cm", this->ceiling_height_);
@@ -197,11 +196,7 @@ bool IWR6843Component::send_config_line_(const char *line) {
 }
 
 bool IWR6843Component::read_frame_() {
-  // CS low to start SPI transaction
-  this->cs_pin_->digital_write(false);
-  delayMicroseconds(10);
-  
-  // Read header
+  // Read header (enable/disable handle CS pin automatically)
   this->enable();
   this->read_array(this->buffer_, sizeof(IWR6843Header));
   this->disable();
@@ -210,7 +205,6 @@ bool IWR6843Component::read_frame_() {
   
   // Validate header
   if (!this->validate_header_(*header)) {
-    this->cs_pin_->digital_write(true);
     return false;
   }
   
@@ -218,16 +212,12 @@ bool IWR6843Component::read_frame_() {
   uint32_t remaining = header->total_packet_len - sizeof(IWR6843Header);
   if (remaining > BUFFER_SIZE - sizeof(IWR6843Header)) {
     ESP_LOGE(TAG, "Packet too large: %d bytes", header->total_packet_len);
-    this->cs_pin_->digital_write(true);
     return false;
   }
   
   this->enable();
   this->read_array(this->buffer_ + sizeof(IWR6843Header), remaining);
   this->disable();
-  
-  // CS high to end transaction
-  this->cs_pin_->digital_write(true);
   
   // Update frame number
   this->frame_number_ = header->frame_number;

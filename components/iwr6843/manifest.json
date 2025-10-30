@@ -1,12 +1,12 @@
 {
   "name": "IWR6843 mmWave Radar",
-  "description": "Texas Instruments IWR6843 mmWave radar with SPI data interface",
+  "description": "Texas Instruments IWR6843 mmWave radar with Dual-UART interface",
   "version": "2.0.0",
-  "author": "Your Name",
+  "author": "bytelink-ai",
   "documentation": "https://github.com/bytelink-ai/IWR6843",
   "issue_tracker": "https://github.com/bytelink-ai/IWR6843/issues",
-  "dependencies": ["spi", "uart"],
-  "codeowners": ["@yourusername"],
+  "dependencies": ["uart"],
+  "codeowners": ["@bytelink-ai"],
   "requirements": ["esphome>=2023.2.0"]
 }
 

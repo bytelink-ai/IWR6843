@@ -7,6 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-10-30
+
+### ⚠️ BREAKING CHANGES
+- **Complete rewrite from SPI to Dual-UART interface**
+- Now uses **standard IWR6843 firmware** (no custom firmware needed!)
+- Configuration changed from `spi_id` + `uart_id` to `config_uart_id` + `data_uart_id`
+- Removed dependency on SPI - only UART required now
+
+### Added
+- **Dual-UART Support**: 
+  - Config UART (CLI Port @ 115200) for sending configuration commands
+  - Data UART (Data Port @ 921600) for receiving radar data
+- **Automatic Configuration**: Config is sent automatically on boot
+- **Standard Firmware Compatible**: Works with stock IWR6843 firmware
+- New `QUICK_START_UART.md` guide for easy setup
+- Improved frame parsing with magic word detection
+- Better buffer management for UART data streams
+
+### Changed
+- **Hardware connections** (see QUICK_START_UART.md):
+  - GPIO27/26: Config UART @ 115200 (CLI Port)
+  - GPIO17: Data UART @ 921600 (Data Port - RX only)
+  - SOP2/NRST pins now optional
+- Component base class changed from `SPIDevice` to plain `Component`
+- Frame reading now uses UART streaming instead of SPI polling
+- Data parsing optimized for UART byte-by-byte reception
+
+### Removed
+- SPI dependency and all SPI-related code
+- Custom SPI firmware requirement
+- CS pin configuration
+- `spi_setup()` and SPI transaction handling
+
+### Migration Guide from v1.x
+
+**Old (SPI-based):**
+```yaml
+spi:
+  id: spi_bus
+  clk_pin: GPIO13
+  miso_pin: GPIO12
+  mosi_pin: GPIO14
+
+uart:
+  id: uart_radar
+  tx_pin: GPIO27
+  rx_pin: GPIO26
+  baud_rate: 115200
+
+iwr6843:
+  spi_id: spi_bus
+  uart_id: uart_radar
+  cs_pin: GPIO25
+  # ...
+```
+
+**New (Dual-UART):**
+```yaml
+uart:
+  - id: uart_config
+    tx_pin: GPIO27
+    rx_pin: GPIO26
+    baud_rate: 115200
+  
+  - id: uart_data
+    tx_pin: GPIO16  # Not used
+    rx_pin: GPIO17
+    baud_rate: 921600
+
+iwr6843:
+  config_uart_id: uart_config
+  data_uart_id: uart_data
+  # sop2_pin/nrst_pin now optional
+  # ...
+```
+
+**Benefits:**
+- ✅ No custom firmware needed
+- ✅ Easier hardware setup (no SPI wiring)
+- ✅ Uses standard IWR6843 configuration
+- ✅ Config automatically loaded on boot
+- ✅ More reliable data reception
+
 ## [1.1.1] - 2025-10-30
 
 ### Fixed
@@ -84,7 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines
 - Code of conduct
 
-[Unreleased]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/bytelink-ai/IWR6843/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/bytelink-ai/IWR6843/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bytelink-ai/IWR6843/releases/tag/v1.0.0

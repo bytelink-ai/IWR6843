@@ -1,6 +1,7 @@
 #include "iwr6843.h"
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace iwr6843 {
@@ -72,9 +73,15 @@ void IWR6843Component::setup() {
     return;
   }
   
-  delay(1000);  // Wait for boot
+  // Wait for boot with watchdog feeding
+  ESP_LOGI(TAG, "Waiting for radar boot...");
+  for (int i = 0; i < 10; i++) {
+    App.feed_wdt();
+    delay(100);
+  }
   
   // Configure radar
+  ESP_LOGI(TAG, "Starting radar configuration...");
   if (!this->configure_radar_()) {
     ESP_LOGE(TAG, "Failed to configure radar");
     this->mark_failed();
@@ -149,11 +156,15 @@ bool IWR6843Component::configure_radar_() {
   
   // Send configuration commands
   for (int i = 0; CONFIG_COMMANDS[i] != nullptr; i++) {
+    // Feed watchdog to prevent timeout during long configuration
+    App.feed_wdt();
+    yield();
+    
     if (!this->send_config_line_(CONFIG_COMMANDS[i])) {
       ESP_LOGE(TAG, "Failed to send config: %s", CONFIG_COMMANDS[i]);
       return false;
     }
-    delay(50);  // Wait between commands
+    delay(20);  // Short wait between commands
   }
   
   ESP_LOGI(TAG, "Radar configuration complete");
@@ -168,11 +179,14 @@ bool IWR6843Component::send_config_line_(const char *line) {
   this->uart_->write_byte('\n');
   this->uart_->flush();
   
-  // Wait for response
-  uint32_t timeout = millis() + 500;
+  // Wait for response with watchdog feeding
+  uint32_t timeout = millis() + 300;
   std::string response = "";
   
   while (millis() < timeout) {
+    // Feed watchdog every iteration
+    App.feed_wdt();
+    
     if (this->uart_->available()) {
       uint8_t c;
       this->uart_->read_byte(&c);
@@ -189,7 +203,7 @@ bool IWR6843Component::send_config_line_(const char *line) {
         response += (char)c;
       }
     }
-    yield();
+    delay(1);  // Small delay to prevent tight loop
   }
   
   return true;  // Continue even without explicit "Done"

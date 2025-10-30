@@ -72,7 +72,7 @@ Get the modified firmware from the companion repository:
 external_components:
   - source:
       type: git
-      url: https://github.com/bytelink-ai/esphome-iwr6843
+      url: https://github.com/bytelink-ai/IWR6843
       ref: main
     components: [ iwr6843 ]
 ```
@@ -82,13 +82,13 @@ external_components:
 ```bash
 # Clone to your ESPHome config directory
 cd /config/esphome
-git clone https://github.com/bytelink-ai/esphome-iwr6843.git
+git clone https://github.com/bytelink-ai/IWR6843.git
 
 # In your YAML:
 external_components:
   - source:
       type: local
-      path: esphome-iwr6843/components
+      path: IWR6843/components
     components: [ iwr6843 ]
 ```
 
@@ -351,8 +351,8 @@ MIT License - see LICENSE file
 
 ## Support
 
-- **Issues:** https://github.com/bytelink-ai/esphome-iwr6843/issues
-- **Discussions:** https://github.com/bytelink-ai/esphome-iwr6843/discussions
+- **Issues:** https://github.com/bytelink-ai/IWR6843/issues
+- **Discussions:** https://github.com/bytelink-ai/IWR6843/discussions
 - **TI E2E Forum:** https://e2e.ti.com
 
 ## References

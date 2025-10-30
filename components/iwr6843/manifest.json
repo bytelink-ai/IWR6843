@@ -3,8 +3,8 @@
   "description": "Texas Instruments IWR6843 mmWave radar with SPI data interface",
   "version": "1.1.0",
   "author": "Your Name",
-  "documentation": "https://github.com/yourusername/esphome-iwr6843",
-  "issue_tracker": "https://github.com/yourusername/esphome-iwr6843/issues",
+  "documentation": "https://github.com/bytelink-ai/IWR6843",
+  "issue_tracker": "https://github.com/bytelink-ai/IWR6843/issues",
   "dependencies": ["spi", "uart"],
   "codeowners": ["@yourusername"],
   "requirements": ["esphome>=2023.2.0"]

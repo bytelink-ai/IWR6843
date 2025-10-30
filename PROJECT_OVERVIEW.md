@@ -133,15 +133,15 @@ Code Quality und Standards:
 
 ```bash
 # 1. Repository klonen (nach GitHub Upload)
-git clone https://github.com/bytelink-ai/esphome-iwr6843.git
-cd esphome-iwr6843
+git clone https://github.com/bytelink-ai/IWR6843.git
+cd IWR6843
 
 # 2. In ESPHome verwenden
 # Add to your ESPHome YAML:
 external_components:
   - source:
       type: git
-      url: https://github.com/bytelink-ai/esphome-iwr6843
+      url: https://github.com/bytelink-ai/IWR6843
     components: [ iwr6843 ]
 
 # 3. Compile & Upload
@@ -221,8 +221,8 @@ git push origin feature/amazing-feature
 
 ## 🆘 Support & Community
 
-- **Issues:** [GitHub Issues](https://github.com/bytelink-ai/esphome-iwr6843/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/bytelink-ai/esphome-iwr6843/discussions)
+- **Issues:** [GitHub Issues](https://github.com/bytelink-ai/IWR6843/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/bytelink-ai/IWR6843/discussions)
 - **Discord:** ESPHome Community
 - **Home Assistant Forum:** Community Support
 

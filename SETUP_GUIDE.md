@@ -82,7 +82,7 @@ esphome:
 external_components:
   - source:
       type: git
-      url: https://github.com/bytelink-ai/esphome-iwr6843
+      url: https://github.com/bytelink-ai/IWR6843
       ref: main
     components: [ iwr6843 ]
 

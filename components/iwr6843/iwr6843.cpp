@@ -90,11 +90,17 @@ void IWR6843Component::setup() {
   
   this->configured_ = true;
   ESP_LOGI(TAG, "IWR6843 setup complete");
+  ESP_LOGI(TAG, "Starting SPI data polling (interval: %d ms)...", this->update_interval_);
 }
 
 void IWR6843Component::loop() {
   if (!this->configured_) {
     return;
+  }
+  
+  static uint32_t loop_count = 0;
+  if (loop_count++ % 200 == 0) {  // Log every 200 loops (~10 seconds)
+    ESP_LOGI(TAG, "Loop running... (count: %d, configured: %d)", loop_count, this->configured_);
   }
   
   uint32_t now = millis();

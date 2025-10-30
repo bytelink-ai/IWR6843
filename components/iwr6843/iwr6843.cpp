@@ -107,7 +107,7 @@ void IWR6843Component::loop() {
   // Read frame from SPI
   if (this->read_frame_()) {
     // Process successful frame read
-    ESP_LOGV(TAG, "Frame %d: %d targets, presence: %d", 
+    ESP_LOGD(TAG, "Frame %d: %d targets, presence: %d", 
              this->frame_number_, this->num_targets_, this->presence_detected_);
     
     // Update sensors
@@ -217,6 +217,14 @@ bool IWR6843Component::read_frame_() {
   
   IWR6843Header *header = reinterpret_cast<IWR6843Header*>(this->buffer_);
   
+  // Debug: Log first few bytes
+  static uint32_t debug_count = 0;
+  if (debug_count++ % 100 == 0) {  // Log every 100th attempt
+    ESP_LOGD(TAG, "SPI Header bytes: %02X %02X %02X %02X %02X %02X %02X %02X",
+             this->buffer_[0], this->buffer_[1], this->buffer_[2], this->buffer_[3],
+             this->buffer_[4], this->buffer_[5], this->buffer_[6], this->buffer_[7]);
+  }
+  
   // Validate header
   if (!this->validate_header_(*header)) {
     return false;
@@ -257,7 +265,12 @@ bool IWR6843Component::validate_header_(const IWR6843Header &header) {
       header.magic_word[1] != 0x0304 ||
       header.magic_word[2] != 0x0506 || 
       header.magic_word[3] != 0x0708) {
-    ESP_LOGV(TAG, "Invalid magic word");
+    static uint32_t error_count = 0;
+    if (error_count++ % 100 == 0) {  // Log every 100th error
+      ESP_LOGW(TAG, "Invalid magic word: %04X %04X %04X %04X (expected: 0102 0304 0506 0708)",
+               header.magic_word[0], header.magic_word[1], 
+               header.magic_word[2], header.magic_word[3]);
+    }
     return false;
   }
   
@@ -265,6 +278,9 @@ bool IWR6843Component::validate_header_(const IWR6843Header &header) {
   if (header.platform != 0xA6843) {
     ESP_LOGW(TAG, "Unexpected platform: 0x%X", header.platform);
   }
+  
+  ESP_LOGD(TAG, "Valid header found! Frame: %d, TLVs: %d", 
+           header.frame_number, header.num_tlvs);
   
   return true;
 }

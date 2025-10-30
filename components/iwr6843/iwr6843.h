@@ -2,7 +2,6 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
-#include "esphome/components/spi/spi.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
 #include <vector>
@@ -62,11 +61,7 @@ struct __attribute__((packed)) TargetHeight {
   float height;
 };
 
-class IWR6843Component : public Component, 
-                         public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, 
-                                               spi::CLOCK_POLARITY_LOW, 
-                                               spi::CLOCK_PHASE_LEADING, 
-                                               spi::DATA_RATE_1MHZ> {
+class IWR6843Component : public Component {
  public:
   void setup() override;
   void loop() override;
@@ -74,7 +69,8 @@ class IWR6843Component : public Component,
   float get_setup_priority() const override { return setup_priority::DATA; }
 
   // Configuration setters
-  void set_uart(uart::UARTComponent *uart) { this->uart_ = uart; }
+  void set_config_uart(uart::UARTComponent *uart) { this->config_uart_ = uart; }
+  void set_data_uart(uart::UARTComponent *uart) { this->data_uart_ = uart; }
   void set_sop2_pin(GPIOPin *pin) { this->sop2_pin_ = pin; }
   void set_nrst_pin(GPIOPin *pin) { this->nrst_pin_ = pin; }
   void set_ceiling_height(uint16_t height) { this->ceiling_height_ = height; }
@@ -115,8 +111,11 @@ class IWR6843Component : public Component,
   bool configure_radar_();
   bool send_config_line_(const char *line);
   
-  // SPI data reading
+  // UART data reading
   bool read_frame_();
+  bool read_uart_bytes_(uint8_t *buffer, size_t length);
+  
+  // Data parsing
   bool validate_header_(const IWR6843Header &header);
   void parse_tlv_(const uint8_t *data, uint32_t length);
   void parse_point_cloud_(const uint8_t *data, uint32_t length);
@@ -125,7 +124,8 @@ class IWR6843Component : public Component,
   void parse_presence_(const uint8_t *data, uint32_t length);
 
   // Configuration
-  uart::UARTComponent *uart_{nullptr};
+  uart::UARTComponent *config_uart_{nullptr};  // CLI Port @ 115200
+  uart::UARTComponent *data_uart_{nullptr};    // Data Port @ 921600
   GPIOPin *sop2_pin_{nullptr};
   GPIOPin *nrst_pin_{nullptr};
   
@@ -146,6 +146,7 @@ class IWR6843Component : public Component,
   // Data buffer
   static const size_t BUFFER_SIZE = 4096;
   uint8_t buffer_[BUFFER_SIZE];
+  size_t buffer_index_{0};
   
   // Callbacks
   CallbackManager<void(bool)> presence_callbacks_;
@@ -164,4 +165,3 @@ class IWR6843Component : public Component,
 
 }  // namespace iwr6843
 }  // namespace esphome
-

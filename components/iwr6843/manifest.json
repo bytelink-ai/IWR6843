@@ -1,7 +1,7 @@
 {
   "name": "IWR6843 mmWave Radar",
   "description": "Texas Instruments IWR6843 mmWave radar with SPI data interface",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Your Name",
   "documentation": "https://github.com/yourusername/esphome-iwr6843",
   "issue_tracker": "https://github.com/yourusername/esphome-iwr6843/issues",

@@ -91,7 +91,12 @@ void IWR6843Component::setup() {
   
   this->configured_ = true;
   ESP_LOGI(TAG, "IWR6843 setup complete");
-  ESP_LOGI(TAG, "Starting UART data polling (interval: %d ms, baud: 921600)...", this->update_interval_);
+  if (this->single_uart_mode_) {
+    ESP_LOGI(TAG, "Single-UART mode: Config & Data on same UART @ 115200 baud");
+  } else {
+    ESP_LOGI(TAG, "Dual-UART mode: Config @ 115200, Data @ 921600 baud");
+  }
+  ESP_LOGI(TAG, "Starting UART data polling (interval: %d ms)...", this->update_interval_);
 }
 
 void IWR6843Component::loop() {
@@ -129,8 +134,12 @@ void IWR6843Component::dump_config() {
   ESP_LOGCONFIG(TAG, "  Ceiling Height: %d cm", this->ceiling_height_);
   ESP_LOGCONFIG(TAG, "  Max Tracks: %d", this->max_tracks_);
   ESP_LOGCONFIG(TAG, "  Update Interval: %d ms", this->update_interval_);
-  ESP_LOGCONFIG(TAG, "  Config UART: 115200 baud");
-  ESP_LOGCONFIG(TAG, "  Data UART: 921600 baud");
+  if (this->single_uart_mode_) {
+    ESP_LOGCONFIG(TAG, "  Mode: Single-UART @ 115200 baud");
+  } else {
+    ESP_LOGCONFIG(TAG, "  Config UART: 115200 baud");
+    ESP_LOGCONFIG(TAG, "  Data UART: 921600 baud");
+  }
   
   if (this->is_failed()) {
     ESP_LOGE(TAG, "Configuration FAILED!");
@@ -218,79 +227,91 @@ bool IWR6843Component::send_config_line_(const char *line) {
 }
 
 bool IWR6843Component::read_frame_() {
-  // Look for magic word in incoming data
+  // Accumulate bytes and continuously resynchronize on magic word
   while (this->data_uart_->available()) {
     uint8_t byte;
     this->data_uart_->read_byte(&byte);
-    
-    this->buffer_[this->buffer_index_++] = byte;
-    
-    // Check if we have enough bytes for header
-    if (this->buffer_index_ >= sizeof(IWR6843Header)) {
-      // Check for magic word at current position
-      IWR6843Header *header = reinterpret_cast<IWR6843Header*>(this->buffer_);
-      
-      if (header->magic_word[0] == 0x0102 && 
-          header->magic_word[1] == 0x0304 &&
-          header->magic_word[2] == 0x0506 && 
-          header->magic_word[3] == 0x0708) {
-        
-        // Valid magic word found!
-        uint32_t packet_len = header->total_packet_len;
-        
-        if (packet_len > BUFFER_SIZE) {
-          ESP_LOGW(TAG, "Packet too large: %d bytes", packet_len);
-          this->buffer_index_ = 0;
-          return false;
-        }
-        
-        // Read rest of packet
-        while (this->buffer_index_ < packet_len && this->data_uart_->available()) {
-          this->data_uart_->read_byte(&this->buffer_[this->buffer_index_++]);
-        }
-        
-        // Check if we have complete packet
-        if (this->buffer_index_ >= packet_len) {
-          // Process complete frame
-          this->frame_number_ = header->frame_number;
-          
-          // Parse TLVs
-          uint8_t *tlv_data = this->buffer_ + sizeof(IWR6843Header);
-          uint32_t offset = 0;
-          uint32_t remaining = packet_len - sizeof(IWR6843Header);
-          
-          for (uint16_t i = 0; i < header->num_tlvs && offset < remaining; i++) {
-            if (offset + sizeof(TLVHeader) > remaining) break;
-            
-            TLVHeader *tlv = reinterpret_cast<TLVHeader*>(tlv_data + offset);
-            
-            if (offset + sizeof(TLVHeader) + tlv->length > remaining) break;
-            
-            this->parse_tlv_(tlv_data + offset + sizeof(TLVHeader), tlv->length);
-            
-            offset += sizeof(TLVHeader) + tlv->length;
-          }
-          
-          // Reset buffer for next frame
-          this->buffer_index_ = 0;
-          return true;
-        }
-      } else {
-        // Not a valid magic word, shift buffer
-        if (this->buffer_index_ >= sizeof(IWR6843Header)) {
-          memmove(this->buffer_, this->buffer_ + 1, this->buffer_index_ - 1);
-          this->buffer_index_--;
-        }
+    if (this->buffer_index_ < BUFFER_SIZE) {
+      this->buffer_[this->buffer_index_++] = byte;
+    } else {
+      // Prevent overflow: drop oldest byte (sliding window)
+      memmove(this->buffer_, this->buffer_ + 1, BUFFER_SIZE - 1);
+      this->buffer_[BUFFER_SIZE - 1] = byte;
+      this->buffer_index_ = BUFFER_SIZE;
+    }
+
+    // We need at least a header to proceed
+    if (this->buffer_index_ < sizeof(IWR6843Header))
+      continue;
+
+    // Search for magic word anywhere in the current buffer
+    size_t magic_pos = SIZE_MAX;
+    for (size_t i = 0; i <= this->buffer_index_ - sizeof(IWR6843Header); i++) {
+      auto *hdr = reinterpret_cast<IWR6843Header*>(this->buffer_ + i);
+      if (hdr->magic_word[0] == 0x0102 && hdr->magic_word[1] == 0x0304 &&
+          hdr->magic_word[2] == 0x0506 && hdr->magic_word[3] == 0x0708) {
+        magic_pos = i;
+        break;
       }
     }
-    
-    // Prevent buffer overflow
-    if (this->buffer_index_ >= BUFFER_SIZE) {
-      ESP_LOGW(TAG, "Buffer overflow, resetting");
-      this->buffer_index_ = 0;
+
+    if (magic_pos == SIZE_MAX) {
+      // No magic yet: keep a reasonable tail to find next magic
+      if (this->buffer_index_ > sizeof(IWR6843Header) * 2) {
+        size_t keep = sizeof(IWR6843Header) - 1;
+        memmove(this->buffer_, this->buffer_ + (this->buffer_index_ - keep), keep);
+        this->buffer_index_ = keep;
+      }
+      continue;
     }
+
+    // Align buffer to magic position
+    if (magic_pos > 0) {
+      memmove(this->buffer_, this->buffer_ + magic_pos, this->buffer_index_ - magic_pos);
+      this->buffer_index_ -= magic_pos;
+      if (this->buffer_index_ < sizeof(IWR6843Header))
+        continue;  // wait for full header
+    }
+
+    // Now parse header at position 0
+    auto *header = reinterpret_cast<IWR6843Header*>(this->buffer_);
+    uint32_t packet_len = header->total_packet_len;
+
+    // Sanity checks
+    if (packet_len < sizeof(IWR6843Header) || packet_len > BUFFER_SIZE) {
+      ESP_LOGW(TAG, "Invalid packet_len=%u, resyncing", packet_len);
+      // Drop first byte and rescan next loop
+      memmove(this->buffer_, this->buffer_ + 1, this->buffer_index_ - 1);
+      this->buffer_index_ -= 1;
+      continue;
+    }
+
+    // Read until full packet collected
+    while (this->buffer_index_ < packet_len && this->data_uart_->available()) {
+      this->data_uart_->read_byte(&this->buffer_[this->buffer_index_++]);
+    }
+    if (this->buffer_index_ < packet_len)
+      continue;  // Wait for more bytes next loop
+
+    // We have a complete packet → parse
+    this->frame_number_ = header->frame_number;
+
+    uint8_t *tlv_data = this->buffer_ + sizeof(IWR6843Header);
+    uint32_t offset = 0;
+    uint32_t remaining = packet_len - sizeof(IWR6843Header);
+    for (uint16_t i = 0; i < header->num_tlvs && offset + sizeof(TLVHeader) <= remaining; i++) {
+      TLVHeader *tlv = reinterpret_cast<TLVHeader*>(tlv_data + offset);
+      if (offset + sizeof(TLVHeader) + tlv->length > remaining)
+        break;
+      this->parse_tlv_(tlv_data + offset + sizeof(TLVHeader), tlv->length);
+      offset += sizeof(TLVHeader) + tlv->length;
+    }
+
+    // Reset buffer for next frame
+    this->buffer_index_ = 0;
+    return true;
   }
-  
+
   return false;
 }
 

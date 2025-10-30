@@ -71,6 +71,7 @@ class IWR6843Component : public Component {
   // Configuration setters
   void set_config_uart(uart::UARTComponent *uart) { this->config_uart_ = uart; }
   void set_data_uart(uart::UARTComponent *uart) { this->data_uart_ = uart; }
+  void set_single_uart_mode(bool single) { this->single_uart_mode_ = single; }
   void set_sop2_pin(GPIOPin *pin) { this->sop2_pin_ = pin; }
   void set_nrst_pin(GPIOPin *pin) { this->nrst_pin_ = pin; }
   void set_ceiling_height(uint16_t height) { this->ceiling_height_ = height; }
@@ -125,7 +126,8 @@ class IWR6843Component : public Component {
 
   // Configuration
   uart::UARTComponent *config_uart_{nullptr};  // CLI Port @ 115200
-  uart::UARTComponent *data_uart_{nullptr};    // Data Port @ 921600
+  uart::UARTComponent *data_uart_{nullptr};    // Data Port (@ 921600 or same as config_uart)
+  bool single_uart_mode_{false};               // True if config_uart == data_uart
   GPIOPin *sop2_pin_{nullptr};
   GPIOPin *nrst_pin_{nullptr};
   
@@ -143,8 +145,8 @@ class IWR6843Component : public Component {
   std::vector<Target> targets_;
   std::vector<TargetHeight> target_heights_;
   
-  // Data buffer
-  static const size_t BUFFER_SIZE = 4096;
+  // Data buffer (large enough for full frames at 921600 bps)
+  static const size_t BUFFER_SIZE = 16384;
   uint8_t buffer_[BUFFER_SIZE];
   size_t buffer_index_{0};
   

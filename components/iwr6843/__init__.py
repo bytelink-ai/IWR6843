@@ -1,4 +1,4 @@
-"""ESPHome component for TI IWR6843 mmWave Radar with Dual-UART interface."""
+"""ESPHome component for TI IWR6843 mmWave Radar with Single/Dual-UART interface."""
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
@@ -42,13 +42,17 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     
-    # Config UART (CLI Port @ 115200)
+    # Config UART (CLI Port)
     config_uart = await cg.get_variable(config[CONF_CONFIG_UART_ID])
     cg.add(var.set_config_uart(config_uart))
     
-    # Data UART (Data Port @ 921600)
+    # Data UART (Data Port - can be same as config_uart for Single-UART mode)
     data_uart = await cg.get_variable(config[CONF_DATA_UART_ID])
     cg.add(var.set_data_uart(data_uart))
+    
+    # Check if Single-UART mode (same UART for both)
+    if config[CONF_CONFIG_UART_ID] == config[CONF_DATA_UART_ID]:
+        cg.add(var.set_single_uart_mode(True))
     
     # SOP2 Pin (Boot mode) - optional
     if CONF_SOP2_PIN in config:

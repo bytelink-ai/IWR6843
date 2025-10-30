@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2025-10-30
+
+### ⚠️ BREAKING CHANGES
+- **Single-UART Mode Support**: Component now supports both Single-UART @ 115200 and Dual-UART modes
+- Firmware changed to output both CLI and data on same UART0 @ 115200 baud
+- No firmware changes needed if using standard Single-UART mode
+
+### Added
+- **Single-UART Mode**: Automatic detection when `config_uart_id` == `data_uart_id`
+- **Flexible Configuration**: Works with both UART0 @ 115200 (Single) and Dual-UART setups
+- Improved logging to show which mode is active (Single vs Dual-UART)
+- Better compatibility with stock IWR6843 firmware configurations
+
+### Changed
+- Component now auto-detects Single-UART vs Dual-UART configuration
+- Updated firmware guide to show UART0 @ 115200 as primary option
+- `dump_config()` now displays "Single-UART @ 115200" or separate UARTs
+- Setup logs now indicate active UART mode
+
+### Migration from v2.0.0 (Dual-UART)
+
+**v2.0.0 (Dual-UART @ 115200 + 921600):**
+```yaml
+uart:
+  - id: uart_config
+    baud_rate: 115200
+  - id: uart_data
+    baud_rate: 921600
+
+iwr6843:
+  config_uart_id: uart_config
+  data_uart_id: uart_data
+```
+
+**v3.0.0 (Single-UART @ 115200) - RECOMMENDED:**
+```yaml
+uart:
+  - id: uart_radar
+    tx_pin: GPIO27
+    rx_pin: GPIO26
+    baud_rate: 115200
+
+iwr6843:
+  config_uart_id: uart_radar
+  data_uart_id: uart_radar  # Same UART!
+```
+
+**Benefits of Single-UART:**
+- ✅ Only ONE UART port needed
+- ✅ Standard 115200 baudrate (reliable)
+- ✅ Simpler wiring (no GPIO17 needed)
+- ✅ Works with stock firmware
+- ✅ CLI and data on same port
+
+**Firmware:**
+- Use `xwr68xx_overhead_uart0_115200.bin` for Single-UART mode
+- Use custom Dual-UART firmware for 921600 data mode (v2.0.0)
+
 ## [2.0.0] - 2025-10-30
 
 ### ⚠️ BREAKING CHANGES

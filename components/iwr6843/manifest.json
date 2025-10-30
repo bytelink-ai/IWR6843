@@ -1,7 +1,7 @@
 {
   "name": "IWR6843 mmWave Radar",
-  "description": "Texas Instruments IWR6843 mmWave radar with Dual-UART interface",
-  "version": "2.0.0",
+  "description": "Texas Instruments IWR6843 mmWave radar with Single/Dual-UART interface",
+  "version": "3.0.0",
   "author": "bytelink-ai",
   "documentation": "https://github.com/bytelink-ai/IWR6843",
   "issue_tracker": "https://github.com/bytelink-ai/IWR6843/issues",

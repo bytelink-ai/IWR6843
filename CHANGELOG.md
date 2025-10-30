@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-10-30
+
+### Fixed
+- **Watchdog Timeout**: Fixed ESP32 task watchdog timeout during radar configuration
+  - Added `App.feed_wdt()` calls during long configuration process
+  - Reduced delay between config commands from 50ms to 20ms
+  - Added watchdog feeding in UART response waiting loop
+  - Split 1000ms boot wait into 10x100ms chunks with WDT feeding
+- **ESPHome 2025.x Compatibility**: Fixed missing `UNIT_METER_PER_SECOND` constant
+- **CS Pin Registration**: Fixed duplicate GPIO pin registration error
+- **Binary Sensor Callback**: Fixed Python lambda to C++ lambda conversion
+
+### Changed
+- Configuration timeout reduced from 500ms to 300ms per command
+- Boot wait now includes progress logging
+- Improved error handling during setup phase
+
 ## [1.1.0] - 2025-10-30
 
 ### Added
@@ -67,7 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contributing guidelines
 - Code of conduct
 
-[Unreleased]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/bytelink-ai/IWR6843/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/bytelink-ai/IWR6843/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bytelink-ai/IWR6843/releases/tag/v1.0.0
 

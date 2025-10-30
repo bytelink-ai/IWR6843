@@ -29,5 +29,7 @@ async def to_code(config):
     
     if CONF_PRESENCE in config:
         sens = await binary_sensor.new_binary_sensor(config[CONF_PRESENCE])
-        cg.add(parent.add_on_presence_callback(lambda x: sens.publish_state(x)))
+        cg.add(parent.add_on_presence_callback(
+            cg.RawExpression(f"[=](bool presence) {{ {sens}->publish_state(presence); }}")
+        ))
 

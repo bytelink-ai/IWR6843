@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Run clang-format
-        uses: jidicula/clang-format-action@v4.11.0
+        uses: jidicula/clang-format-action@v4.16.0
         with:
           clang-format-version: '14'
           check-path: 'components/iwr6843'
